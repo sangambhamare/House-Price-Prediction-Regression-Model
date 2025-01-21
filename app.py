@@ -78,3 +78,6 @@ if model:
         st.success(f"🏡 **Estimated House Price:** ${prediction:,.2f}")
 else:
     st.error("⚠️ Model is not available.")
+
+
+st.markdown("All rights reserved to Mr. Sangam Sanjay Bhamare, 2025")
