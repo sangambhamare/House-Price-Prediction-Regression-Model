@@ -1,109 +1,80 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
+import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 import requests
 
-# Load the model from GitHub
+# ✅ GitHub URL for the trained model
 MODEL_URL = "https://raw.githubusercontent.com/sangambhamare/House-Price-Prediction-Regression-Model/master/lightgbm_model.h5"
 
+# ✅ Load the trained model from GitHub
+@st.cache_resource
 def load_model():
-    try:
-        response = requests.get(MODEL_URL)
-        response.raise_for_status()
+    response = requests.get(MODEL_URL)
+    if response.status_code == 200:
         with open("model.h5", "wb") as f:
             f.write(response.content)
-        return joblib.load("model.h5")
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to load the model: {e}")
+        model = joblib.load("model.h5")
+        return model
+    else:
+        st.error("⚠️ Failed to load the model from GitHub. Please check the URL.")
         return None
 
 model = load_model()
 
-# GUI Layout
-class HousePriceApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("🏡 House Price Prediction")
-        self.root.geometry("500x600")
+# ✅ Streamlit App
+st.title("🏡 House Price Prediction")
+st.write("This app predicts house prices using a pre-trained LightGBM model.")
 
-        # Create input fields
-        self.create_widgets()
+# Input fields for features
+def user_input_features():
+    st.sidebar.header("Enter House Details")
+    bedrooms = st.sidebar.slider("🏡 Number of Bedrooms", 1, 10, 3)
+    bathrooms = st.sidebar.slider("🚿 Number of Bathrooms", 1, 10, 2)
+    sqft_living = st.sidebar.number_input("📏 Living Area (sqft)", min_value=300, max_value=10000, value=1500)
+    sqft_lot = st.sidebar.number_input("🌳 Lot Size (sqft)", min_value=500, max_value=50000, value=5000)
+    floors = st.sidebar.slider("🏢 Number of Floors", 1, 3, 1)
+    waterfront = st.sidebar.radio("🌊 Waterfront View", ["No", "Yes"])
+    view = st.sidebar.slider("👀 View Quality (0 - 4)", 0, 4, 1)
+    condition = st.sidebar.slider("🏚️ Condition (1 - 5)", 1, 5, 3)
+    sqft_above = st.sidebar.number_input("🏠 Above Ground Square Footage", min_value=300, max_value=10000, value=1500)
+    sqft_basement = st.sidebar.number_input("🏡 Basement Square Footage", min_value=0, max_value=5000, value=0)
+    house_age = st.sidebar.number_input("📅 Age of the House (Years)", min_value=0, max_value=200, value=20)
+    was_renovated = st.sidebar.radio("🔨 Was the House Renovated?", ["No", "Yes"])
 
-    def create_widgets(self):
-        ttk.Label(self.root, text="🏡 House Price Prediction", font=("Arial", 16)).pack(pady=10)
+    # Convert categorical inputs
+    waterfront = 1 if waterfront == "Yes" else 0
+    was_renovated = 1 if was_renovated == "Yes" else 0
 
-        # Input fields
-        self.inputs = {}
-        fields = [
-            ("Bedrooms", 1, 10, 3),
-            ("Bathrooms", 1, 10, 2),
-            ("Living Area (sqft)", 300, 10000, 1500),
-            ("Lot Size (sqft)", 500, 50000, 5000),
-            ("Floors", 1, 3, 1),
-            ("Waterfront (0 = No, 1 = Yes)", 0, 1, 0),
-            ("View Quality (0-4)", 0, 4, 1),
-            ("Condition (1-5)", 1, 5, 3),
-            ("Above Ground (sqft)", 300, 10000, 1500),
-            ("Basement (sqft)", 0, 5000, 0),
-            ("House Age (Years)", 0, 200, 20),
-            ("Was Renovated (0 = No, 1 = Yes)", 0, 1, 0)
-        ]
+    # Placeholder values for city and statezip encoding
+    city_encoded = 0
+    statezip_encoded = 0
 
-        for field, min_val, max_val, default in fields:
-            frame = ttk.Frame(self.root)
-            frame.pack(pady=5, fill="x")
-            ttk.Label(frame, text=field, width=25, anchor="w").pack(side="left", padx=5)
-            entry = ttk.Entry(frame, width=10)
-            entry.pack(side="right", padx=5)
-            entry.insert(0, default)
-            self.inputs[field] = entry
+    # Create DataFrame for prediction
+    data = {
+        "bedrooms": bedrooms,
+        "bathrooms": bathrooms,
+        "sqft_living": sqft_living,
+        "sqft_lot": sqft_lot,
+        "floors": floors,
+        "waterfront": waterfront,
+        "view": view,
+        "condition": condition,
+        "sqft_above": sqft_above,
+        "sqft_basement": sqft_basement,
+        "house_age": house_age,
+        "was_renovated": was_renovated,
+        "city_encoded": city_encoded,
+        "statezip_encoded": statezip_encoded
+    }
 
-        # Predict button
-        ttk.Button(self.root, text="📢 Predict Price", command=self.predict_price).pack(pady=20)
+    return pd.DataFrame([data])
 
-        # Output field
-        self.result_label = ttk.Label(self.root, text="", font=("Arial", 14))
-        self.result_label.pack(pady=10)
-
-    def predict_price(self):
-        if not model:
-            messagebox.showerror("Error", "Model is not loaded. Cannot predict.")
-            return
-
-        try:
-            # Collect inputs
-            input_data = {
-                "bedrooms": float(self.inputs["Bedrooms"].get()),
-                "bathrooms": float(self.inputs["Bathrooms"].get()),
-                "sqft_living": float(self.inputs["Living Area (sqft)"].get()),
-                "sqft_lot": float(self.inputs["Lot Size (sqft)"].get()),
-                "floors": float(self.inputs["Floors"].get()),
-                "waterfront": float(self.inputs["Waterfront (0 = No, 1 = Yes)"].get()),
-                "view": float(self.inputs["View Quality (0-4)"].get()),
-                "condition": float(self.inputs["Condition (1-5)"].get()),
-                "sqft_above": float(self.inputs["Above Ground (sqft)"].get()),
-                "sqft_basement": float(self.inputs["Basement (sqft)"].get()),
-                "house_age": float(self.inputs["House Age (Years)"].get()),
-                "was_renovated": float(self.inputs["Was Renovated (0 = No, 1 = Yes)"].get()),
-                "city_encoded": 0,  # Placeholder
-                "statezip_encoded": 0  # Placeholder
-            }
-
-            # Convert input data into DataFrame
-            input_df = pd.DataFrame([input_data])
-
-            # Predict
-            predicted_price = model.predict(input_df)[0]
-
-            # Display result
-            self.result_label.config(text=f"🏡 Estimated Price: ${predicted_price:,.2f}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Invalid input or prediction failed: {e}")
-
-# Run the app
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = HousePriceApp(root)
-    root.mainloop()
+# Prediction logic
+if model:
+    user_input = user_input_features()
+    if st.button("📢 Predict Price"):
+        prediction = model.predict(user_input)[0]
+        st.success(f"🏡 **Estimated House Price:** ${prediction:,.2f}")
+else:
+    st.error("⚠️ Model is not available.")
