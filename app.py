@@ -7,8 +7,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-# GitHub raw CSV file link (Replace with your actual raw link)
-GITHUB_CSV_URL = "data.csv"
+# GitHub raw CSV file link 
+GITHUB_CSV_URL = "https://github.com/sangambhamare/House-Price-Prediction-Regression-Model/blob/master/data.csv"
 
 # Function to load data from GitHub
 @st.cache_data
