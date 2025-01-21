@@ -1,37 +1,38 @@
+# 🚀 Import necessary libraries
 import streamlit as st
 import pandas as pd
 import numpy as np
-import requests
 import matplotlib.pyplot as plt
-from io import StringIO
-from sklearn.model_selection import train_test_split
+import seaborn as sns
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from lightgbm import LGBMRegressor
+import joblib
+import requests
+from io import StringIO
 
-# ✅ Correct GitHub raw CSV file link
+# ✅ GitHub Raw CSV URL (Updated)
 GITHUB_CSV_URL = "https://raw.githubusercontent.com/sangambhamare/House-Price-Prediction-Regression-Model/master/data.csv"
 
-# Function to load data from GitHub
+# ✅ Load dataset from GitHub
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv(GITHUB_CSV_URL)
+    response = requests.get(GITHUB_CSV_URL)
+    if response.status_code == 200:
+        csv_data = StringIO(response.text)
+        df = pd.read_csv(csv_data)
         return df
-    except Exception as e:
-        st.error(f"Error loading data: {e}")
+    else:
+        st.error("Failed to load data from GitHub. Please check the URL.")
         return None
 
-# Load dataset
 df = load_data()
 
-if df is not None:
-    st.title("🏡 House Price Prediction App")
-    st.write("This tool predicts house prices based on key features like square footage, number of bedrooms, location, and more.")
-
-    # Display dataset preview
-    if st.checkbox("🔍 Show dataset preview"):
-        st.write(df.head())
+# ✅ Preprocess dataset
+def preprocess_data(df):
+    if df is None:
+        return None
 
     # Drop irrelevant columns
     df = df.drop(columns=['date', 'street', 'country'])
@@ -50,112 +51,94 @@ if df is not None:
     # Drop original year columns
     df = df.drop(columns=['yr_built', 'yr_renovated'])
 
-    # Define features and target
+    # Remove Outliers (Top 1% most expensive homes)
+    price_threshold = df['price'].quantile(0.99)
+    df = df[df['price'] <= price_threshold]
+
+    return df
+
+df = preprocess_data(df)
+
+if df is not None:
+    # ✅ Split dataset
     X = df.drop(columns=['price'])
     y = df['price']
-
-    # Split dataset into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Train a Random Forest Model
-    rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
-    rf_model.fit(X_train, y_train)
+    # ✅ Train and Optimize LightGBM Model
+    @st.cache_data
+    def train_model():
+        param_grid = {
+            'n_estimators': [300, 500],
+            'learning_rate': [0.05, 0.1],
+            'max_depth': [6, 8],
+            'num_leaves': [31, 50],
+            'min_child_samples': [10, 20],
+            'subsample': [0.8, 1.0],
+            'colsample_bytree': [0.8, 1.0]
+        }
 
-    # Make predictions
-    y_pred_rf = rf_model.predict(X_test)
+        # Perform Grid Search CV
+        grid_search = GridSearchCV(LGBMRegressor(random_state=42), param_grid, cv=5, n_jobs=-1, verbose=1, scoring='r2')
+        grid_search.fit(X_train, y_train)
 
-    # Evaluate the model
-    mae_rf = mean_absolute_error(y_test, y_pred_rf)
-    rmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))
-    r2_rf = r2_score(y_test, y_pred_rf)
+        best_params = grid_search.best_params_
 
-    # Display model performance
-    st.write("## 📊 Model Performance")
-    st.write(f"**📉 Mean Absolute Error (MAE):** ${mae_rf:,.2f}")
-    st.write(f"**📏 Root Mean Squared Error (RMSE):** ${rmse_rf:,.2f}")
-    st.write(f"**📈 R² Score:** {r2_rf:.4f}")
+        # Train best model
+        best_lgbm_model = LGBMRegressor(**best_params, random_state=42)
+        best_lgbm_model.fit(X_train, y_train)
 
-    # Feature Importance
-    feature_importance = pd.DataFrame({'Feature': X.columns, 'Importance': rf_model.feature_importances_})
+        # Save the model
+        joblib.dump(best_lgbm_model, "best_lgbm_model.pkl")
+
+        return best_lgbm_model, best_params
+
+    model, best_params = train_model()
+
+    # ✅ Evaluate Model
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+
+    # ✅ Streamlit UI
+    st.title("🏡 Optimized House Price Prediction")
+    st.write("This app predicts house prices using an optimized LightGBM model.")
+
+    # Display dataset preview
+    if st.checkbox("🔍 Show dataset preview"):
+        st.write(df.head())
+
+    st.write("### 📊 Model Performance")
+    st.write(f"✅ **Mean Absolute Error (MAE):** ${mae:,.2f}")
+    st.write(f"✅ **Root Mean Squared Error (RMSE):** ${rmse:,.2f}")
+    st.write(f"✅ **R² Score:** {r2:.4f}")
+
+    st.write("### 🔥 Feature Importance")
+    feature_importance = pd.DataFrame({'Feature': X.columns, 'Importance': model.feature_importances_})
     feature_importance = feature_importance.sort_values(by='Importance', ascending=False)
 
-    # Plot Feature Importance
-    st.write("## 🔥 Most Important Factors Affecting Price")
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(feature_importance['Feature'], feature_importance['Importance'], color='skyblue')
+    sns.barplot(x='Importance', y='Feature', data=feature_importance, palette="Blues_r")
     ax.set_xlabel("Feature Importance Score")
     ax.set_ylabel("Features")
     ax.set_title("Feature Importance in House Price Prediction")
-    ax.invert_yaxis()
     st.pyplot(fig)
 
-    # User Input for Predictions
-    st.write("## 🏠 Predict Your House Price")
-    st.write("Fill in the details below to get an estimate of your house price:")
-
+    # ✅ User Input for Prediction
+    st.write("### 🏠 Predict House Price")
     input_features = {}
 
-    input_features['bedrooms'] = st.number_input("🏡 How many **bedrooms** does the house have?", 
-                                                 min_value=int(df['bedrooms'].min()), 
-                                                 max_value=int(df['bedrooms'].max()), 
-                                                 value=int(df['bedrooms'].median()))
+    for feature in X.columns:
+        value = st.number_input(f"Enter {feature}", float(df[feature].min()), float(df[feature].max()), float(df[feature].median()))
+        input_features[feature] = value
 
-    input_features['bathrooms'] = st.number_input("🚿 How many **bathrooms** are there?", 
-                                                  min_value=float(df['bathrooms'].min()), 
-                                                  max_value=float(df['bathrooms'].max()), 
-                                                  value=float(df['bathrooms'].median()))
-
-    input_features['sqft_living'] = st.number_input("📏 What is the **total living area (sqft)**?", 
-                                                    min_value=int(df['sqft_living'].min()), 
-                                                    max_value=int(df['sqft_living'].max()), 
-                                                    value=int(df['sqft_living'].median()))
-
-    input_features['sqft_lot'] = st.number_input("🌳 What is the **total lot size (sqft)**?", 
-                                                 min_value=int(df['sqft_lot'].min()), 
-                                                 max_value=int(df['sqft_lot'].max()), 
-                                                 value=int(df['sqft_lot'].median()))
-
-    input_features['floors'] = st.number_input("🏢 How many **floors** does the house have?", 
-                                               min_value=float(df['floors'].min()), 
-                                               max_value=float(df['floors'].max()), 
-                                               value=float(df['floors'].median()))
-
-    input_features['waterfront'] = st.radio("🌊 Does the house have a **waterfront view**?", ["No", "Yes"])
-    input_features['waterfront'] = 1 if input_features['waterfront'] == "Yes" else 0
-
-    input_features['view'] = st.slider("👀 How **good is the view** of the house? (0 = Worst, 4 = Best)", 
-                                       min_value=int(df['view'].min()), 
-                                       max_value=int(df['view'].max()), 
-                                       value=int(df['view'].median()))
-
-    input_features['condition'] = st.slider("🏚️ How **good is the overall condition** of the house? (1 = Poor, 5 = Excellent)", 
-                                            min_value=int(df['condition'].min()), 
-                                            max_value=int(df['condition'].max()), 
-                                            value=int(df['condition'].median()))
-
-    input_features['sqft_above'] = st.number_input("🏠 What is the **total above-ground square footage**?", 
-                                                   min_value=int(df['sqft_above'].min()), 
-                                                   max_value=int(df['sqft_above'].max()), 
-                                                   value=int(df['sqft_above'].median()))
-
-    input_features['sqft_basement'] = st.number_input("🏡 What is the **basement size (sqft)**?", 
-                                                      min_value=int(df['sqft_basement'].min()), 
-                                                      max_value=int(df['sqft_basement'].max()), 
-                                                      value=int(df['sqft_basement'].median()))
-
-    input_features['house_age'] = st.number_input("📅 How **old is the house** (years)?", 
-                                                  min_value=int(df['house_age'].min()), 
-                                                  max_value=int(df['house_age'].max()), 
-                                                  value=int(df['house_age'].median()))
-
-    input_features['was_renovated'] = st.radio("🔨 Has the house been **renovated**?", ["No", "Yes"])
-    input_features['was_renovated'] = 1 if input_features['was_renovated'] == "Yes" else 0
-
-    # Predict Price
     if st.button("📢 Get Predicted House Price"):
         input_data = pd.DataFrame([input_features])
-        predicted_price = rf_model.predict(input_data)[0]
+        predicted_price = model.predict(input_data)[0]
         st.success(f"🏡 **Estimated House Price:** ${predicted_price:,.2f}")
 
-    # Copyright notice
     st.markdown("All rights reserved to Mr. Sangam Sanjay Bhamare, 2025")
+else:
+    st.error("⚠️ Dataset could not be loaded. Please check the GitHub URL.")
+
