@@ -157,3 +157,5 @@ if df is not None:
         predicted_price = rf_model.predict(input_data)[0]
         st.success(f"🏡 **Estimated House Price:** ${predicted_price:,.2f}")
 
+    # Copyright notice
+    st.markdown("All rights reserved to Mr. Sangam Sanjay Bhamare, 2025")
