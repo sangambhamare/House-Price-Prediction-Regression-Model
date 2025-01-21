@@ -6,18 +6,20 @@ from sklearn.preprocessing import LabelEncoder
 import joblib
 import requests
 
+# ✅ GitHub URL for the trained model
+MODEL_URL = "https://raw.githubusercontent.com/sangambhamare/House-Price-Prediction-Regression-Model/master/lightgbm_model.h5"
+
 # ✅ Load the trained model from GitHub
 @st.cache_resource
 def load_model():
-    url = "https://github.com/sangambhamare/House-Price-Prediction-Regression-Model/blob/master/lightgbm_model.h5"
-    response = requests.get(url)
+    response = requests.get(MODEL_URL)
     if response.status_code == 200:
         with open("model.h5", "wb") as f:
             f.write(response.content)
         model = joblib.load("model.h5")
         return model
     else:
-        st.error("Failed to load the model from GitHub. Please check the URL.")
+        st.error("⚠️ Failed to load the model from GitHub. Please check the URL.")
         return None
 
 model = load_model()
