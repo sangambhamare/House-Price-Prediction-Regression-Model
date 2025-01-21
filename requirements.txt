@@ -1,7 +1,6 @@
-streamlit
+dash
+dash-bootstrap-components
 pandas
 numpy
-scikit-learn
-lightgbm
 joblib
 requests
