@@ -1,1 +1,4 @@
-pandas numpy joblib requests
+pandas
+numpy
+joblib
+requests
