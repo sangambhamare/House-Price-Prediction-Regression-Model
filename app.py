@@ -5,7 +5,7 @@ import requests
 import matplotlib.pyplot as plt
 from io import StringIO
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
@@ -26,11 +26,11 @@ def load_data():
 df = load_data()
 
 if df is not None:
-    st.title("🏡 House Price Prediction - Machine Learning Model")
-    st.write("This application predicts house prices based on key features like square footage, bedrooms, location, and more.")
+    st.title("🏡 House Price Prediction App")
+    st.write("This tool predicts house prices based on key features like square footage, number of bedrooms, location, and more.")
 
     # Display dataset preview
-    if st.checkbox("Show dataset"):
+    if st.checkbox("🔍 Show dataset preview"):
         st.write(df.head())
 
     # Drop irrelevant columns
@@ -71,16 +71,16 @@ if df is not None:
 
     # Display model performance
     st.write("## 📊 Model Performance")
-    st.write(f"**Mean Absolute Error (MAE):** ${mae_rf:,.2f}")
-    st.write(f"**Root Mean Squared Error (RMSE):** ${rmse_rf:,.2f}")
-    st.write(f"**R² Score:** {r2_rf:.4f}")
+    st.write(f"**📉 Mean Absolute Error (MAE):** ${mae_rf:,.2f}")
+    st.write(f"**📏 Root Mean Squared Error (RMSE):** ${rmse_rf:,.2f}")
+    st.write(f"**📈 R² Score:** {r2_rf:.4f}")
 
     # Feature Importance
     feature_importance = pd.DataFrame({'Feature': X.columns, 'Importance': rf_model.feature_importances_})
     feature_importance = feature_importance.sort_values(by='Importance', ascending=False)
 
     # Plot Feature Importance
-    st.write("## 🔥 Feature Importance")
+    st.write("## 🔥 Most Important Factors Affecting Price")
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.barh(feature_importance['Feature'], feature_importance['Importance'], color='skyblue')
     ax.set_xlabel("Feature Importance Score")
@@ -90,15 +90,70 @@ if df is not None:
     st.pyplot(fig)
 
     # User Input for Predictions
-    st.write("## 🏠 Predict House Price")
+    st.write("## 🏠 Predict Your House Price")
+    st.write("Fill in the details below to get an estimate of your house price:")
+
     input_features = {}
 
-    for feature in X.columns:
-        value = st.number_input(f"Enter {feature}", float(df[feature].min()), float(df[feature].max()), float(df[feature].median()))
-        input_features[feature] = value
+    input_features['bedrooms'] = st.number_input("🏡 How many **bedrooms** does the house have?", 
+                                                 min_value=int(df['bedrooms'].min()), 
+                                                 max_value=int(df['bedrooms'].max()), 
+                                                 value=int(df['bedrooms'].median()))
 
-    if st.button("Predict Price"):
+    input_features['bathrooms'] = st.number_input("🚿 How many **bathrooms** are there?", 
+                                                  min_value=float(df['bathrooms'].min()), 
+                                                  max_value=float(df['bathrooms'].max()), 
+                                                  value=float(df['bathrooms'].median()))
+
+    input_features['sqft_living'] = st.number_input("📏 What is the **total living area (sqft)**?", 
+                                                    min_value=int(df['sqft_living'].min()), 
+                                                    max_value=int(df['sqft_living'].max()), 
+                                                    value=int(df['sqft_living'].median()))
+
+    input_features['sqft_lot'] = st.number_input("🌳 What is the **total lot size (sqft)**?", 
+                                                 min_value=int(df['sqft_lot'].min()), 
+                                                 max_value=int(df['sqft_lot'].max()), 
+                                                 value=int(df['sqft_lot'].median()))
+
+    input_features['floors'] = st.number_input("🏢 How many **floors** does the house have?", 
+                                               min_value=float(df['floors'].min()), 
+                                               max_value=float(df['floors'].max()), 
+                                               value=float(df['floors'].median()))
+
+    input_features['waterfront'] = st.radio("🌊 Does the house have a **waterfront view**?", ["No", "Yes"])
+    input_features['waterfront'] = 1 if input_features['waterfront'] == "Yes" else 0
+
+    input_features['view'] = st.slider("👀 How **good is the view** of the house? (0 = Worst, 4 = Best)", 
+                                       min_value=int(df['view'].min()), 
+                                       max_value=int(df['view'].max()), 
+                                       value=int(df['view'].median()))
+
+    input_features['condition'] = st.slider("🏚️ How **good is the overall condition** of the house? (1 = Poor, 5 = Excellent)", 
+                                            min_value=int(df['condition'].min()), 
+                                            max_value=int(df['condition'].max()), 
+                                            value=int(df['condition'].median()))
+
+    input_features['sqft_above'] = st.number_input("🏠 What is the **total above-ground square footage**?", 
+                                                   min_value=int(df['sqft_above'].min()), 
+                                                   max_value=int(df['sqft_above'].max()), 
+                                                   value=int(df['sqft_above'].median()))
+
+    input_features['sqft_basement'] = st.number_input("🏡 What is the **basement size (sqft)**?", 
+                                                      min_value=int(df['sqft_basement'].min()), 
+                                                      max_value=int(df['sqft_basement'].max()), 
+                                                      value=int(df['sqft_basement'].median()))
+
+    input_features['house_age'] = st.number_input("📅 How **old is the house** (years)?", 
+                                                  min_value=int(df['house_age'].min()), 
+                                                  max_value=int(df['house_age'].max()), 
+                                                  value=int(df['house_age'].median()))
+
+    input_features['was_renovated'] = st.radio("🔨 Has the house been **renovated**?", ["No", "Yes"])
+    input_features['was_renovated'] = 1 if input_features['was_renovated'] == "Yes" else 0
+
+    # Predict Price
+    if st.button("📢 Get Predicted House Price"):
         input_data = pd.DataFrame([input_features])
         predicted_price = rf_model.predict(input_data)[0]
-        st.success(f"🏡 **Predicted House Price:** ${predicted_price:,.2f}")
+        st.success(f"🏡 **Estimated House Price:** ${predicted_price:,.2f}")
 
