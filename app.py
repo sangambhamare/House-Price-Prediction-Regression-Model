@@ -24,9 +24,12 @@ def load_model():
 
 model = load_model()
 
-# ✅ Streamlit App
-st.title("🏡 House Price Prediction")
-st.write("This app predicts house prices using a pre-trained LightGBM model.")
+# ✅ Ensure feature alignment
+MODEL_FEATURES = [
+    "bedrooms", "bathrooms", "sqft_living", "sqft_lot", "floors", 
+    "waterfront", "view", "condition", "sqft_above", "sqft_basement", 
+    "house_age", "was_renovated", "city_encoded", "statezip_encoded"
+]
 
 # Input features
 def user_input_features():
@@ -42,6 +45,10 @@ def user_input_features():
     sqft_basement = st.number_input("🏡 Basement Square Footage", min_value=0, max_value=5000, value=0)
     house_age = st.number_input("📅 Age of the House (Years)", min_value=0, max_value=200, value=20)
     was_renovated = st.radio("🔨 Was the House Renovated?", ["No", "Yes"])
+
+    # Placeholder values for missing features
+    city_encoded = 0  # Placeholder; modify as needed
+    statezip_encoded = 0  # Placeholder; modify as needed
 
     # Convert categorical inputs
     waterfront = 1 if waterfront == "Yes" else 0
@@ -59,10 +66,13 @@ def user_input_features():
         "sqft_above": sqft_above,
         "sqft_basement": sqft_basement,
         "house_age": house_age,
-        "was_renovated": was_renovated
+        "was_renovated": was_renovated,
+        "city_encoded": city_encoded,
+        "statezip_encoded": statezip_encoded
     }
 
-    return pd.DataFrame([data])
+    # Align input with model features
+    return pd.DataFrame([data])[MODEL_FEATURES]
 
 # Prediction
 if model:
