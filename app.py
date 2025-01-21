@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 # GitHub raw CSV file link (Replace with your actual raw link)
-GITHUB_CSV_URL = "https://raw.githubusercontent.com/your-username/your-repo/main/data.csv"
+GITHUB_CSV_URL = "data.csv"
 
 # Function to load data from GitHub
 @st.cache_data
