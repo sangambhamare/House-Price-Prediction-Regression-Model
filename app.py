@@ -24,23 +24,23 @@ model = load_model()
 
 # ✅ Streamlit App
 st.title("🏡 House Price Prediction")
-st.write("This app predicts house prices using a pre-trained LightGBM model.")
+st.write("This app predicts house prices using a pre-trained LightGBM model. Please enter the details below:")
 
 # Input fields for features
 def user_input_features():
-    st.sidebar.header("Enter House Details")
-    bedrooms = st.sidebar.slider("🏡 Number of Bedrooms", 1, 10, 3)
-    bathrooms = st.sidebar.slider("🚿 Number of Bathrooms", 1, 10, 2)
-    sqft_living = st.sidebar.number_input("📏 Living Area (sqft)", min_value=300, max_value=10000, value=1500)
-    sqft_lot = st.sidebar.number_input("🌳 Lot Size (sqft)", min_value=500, max_value=50000, value=5000)
-    floors = st.sidebar.slider("🏢 Number of Floors", 1, 3, 1)
-    waterfront = st.sidebar.radio("🌊 Waterfront View", ["No", "Yes"])
-    view = st.sidebar.slider("👀 View Quality (0 - 4)", 0, 4, 1)
-    condition = st.sidebar.slider("🏚️ Condition (1 - 5)", 1, 5, 3)
-    sqft_above = st.sidebar.number_input("🏠 Above Ground Square Footage", min_value=300, max_value=10000, value=1500)
-    sqft_basement = st.sidebar.number_input("🏡 Basement Square Footage", min_value=0, max_value=5000, value=0)
-    house_age = st.sidebar.number_input("📅 Age of the House (Years)", min_value=0, max_value=200, value=20)
-    was_renovated = st.sidebar.radio("🔨 Was the House Renovated?", ["No", "Yes"])
+    st.subheader("Enter House Details:")
+    bedrooms = st.number_input("🏡 Number of Bedrooms", min_value=1, max_value=10, value=3)
+    bathrooms = st.number_input("🚿 Number of Bathrooms", min_value=1, max_value=10, value=2)
+    sqft_living = st.number_input("📏 Living Area (sqft)", min_value=300, max_value=10000, value=1500)
+    sqft_lot = st.number_input("🌳 Lot Size (sqft)", min_value=500, max_value=50000, value=5000)
+    floors = st.number_input("🏢 Number of Floors", min_value=1, max_value=3, value=1)
+    waterfront = st.radio("🌊 Waterfront View", ["No", "Yes"])
+    view = st.slider("👀 View Quality (0 - 4)", 0, 4, 1)
+    condition = st.slider("🏚️ Condition (1 - 5)", 1, 5, 3)
+    sqft_above = st.number_input("🏠 Above Ground Square Footage", min_value=300, max_value=10000, value=1500)
+    sqft_basement = st.number_input("🏡 Basement Square Footage", min_value=0, max_value=5000, value=0)
+    house_age = st.number_input("📅 Age of the House (Years)", min_value=0, max_value=200, value=20)
+    was_renovated = st.radio("🔨 Was the House Renovated?", ["No", "Yes"])
 
     # Convert categorical inputs
     waterfront = 1 if waterfront == "Yes" else 0
@@ -79,5 +79,4 @@ if model:
 else:
     st.error("⚠️ Model is not available.")
 
-
-st.markdown("All rights reserved to Mr. Sangam Sanjay Bhamare, 2025")
+st.markdown("🔒 All rights reserved to Mr. Sangam Sanjay Bhamare, 2025.")
