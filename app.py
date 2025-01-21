@@ -9,7 +9,7 @@ import requests
 # ✅ Load the trained model from GitHub
 @st.cache_resource
 def load_model():
-    url = "https://raw.githubusercontent.com/your-username/your-repo/main/lightgbm_model.h5"
+    url = "lightgbm_model.h5"
     response = requests.get(url)
     if response.status_code == 200:
         with open("model.h5", "wb") as f:
