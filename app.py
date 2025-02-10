@@ -5,7 +5,7 @@ import joblib
 import requests
 
 # ✅ GitHub URL for the trained model
-MODEL_URL = "https://raw.githubusercontent.com/sangambhamare/House-Price-Prediction-Regression-Model/master/lightgbm_model.h5"
+MODEL_URL = "lightgbm_model.h5"
 
 # ✅ Load the trained model from GitHub
 @st.cache_resource
