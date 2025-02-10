@@ -12,9 +12,9 @@ MODEL_URL = "https://github.com/sangambhamare/House-Price-Prediction-Regression-
 def load_model():
     response = requests.get(MODEL_URL)
     if response.status_code == 200:
-        with open("model.h5", "wb") as f:
+        with open("lightbgm_model.h5", "wb") as f:
             f.write(response.content)
-        model = joblib.load("model.h5")
+        model = joblib.load("lightbgm_model.h5")
         return model
     else:
         st.error("⚠️ Failed to load the model from GitHub. Please check the URL.")
